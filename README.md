@@ -1,3 +1,3 @@
 # DocumentationTechnique
 Charte de projet a deja été remis
-TP2 fait et par chacun
+TP2 fait et lu par chacun
