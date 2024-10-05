@@ -1,0 +1,33 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Tableau de bord Enseignant</title>
+  </head>
+  <body>
+    <h1>Bienvenue, {{ username }}!</h1>
+    <p>Vous êtes connecté en tant qu'enseignant.</p>
+    <p><a href="/logout">Déconnexion</a></p>
+    <h2>Ajouter un étudiant</h2>
+    <form action="/add_student" method="POST">
+      <label for="student_username">Nom d'utilisateur de l'étudiant:</label>
+      <input
+        type="text"
+        id="student_username"
+        name="student_username"
+        required
+      /><br /><br />
+
+      <label for="student_password">Mot de passe de l'étudiant:</label>
+      <input
+        type="password"
+        id="student_password"
+        name="student_password"
+        required
+      /><br /><br />
+
+      <button type="submit">Ajouter Étudiant</button>
+    </form>
+  </body>
+</html>

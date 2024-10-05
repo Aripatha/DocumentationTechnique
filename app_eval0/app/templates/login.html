@@ -1,0 +1,48 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Login</title>
+    <style>
+      body {
+        font-family: Arial, sans-serif;
+        max-width: 400px;
+        margin: auto;
+        padding: 20px;
+      }
+      .alert {
+        color: red;
+      }
+    </style>
+  </head>
+  <body>
+    <h2>Formulaire de Connexion</h2>
+    {% with messages = get_flashed_messages(with_categories=true) %} {% if
+    messages %} {% for category, message in messages %}
+    <div class="alert">{{ message }}</div>
+    {% endfor %} {% endif %} {% endwith %}
+    <form action="/login" method="POST">
+      <label for="username">Username:</label>
+      <input type="text" id="username" name="username" required /><br /><br />
+
+      <label for="statut">Statut:</label>
+      <select id="statut" name="statut" required>
+        <option value="">Choisir un statut</option>
+        <option value="etudiant">Étudiant</option>
+        <option value="enseignant">Enseignant</option></select
+      ><br /><br />
+
+      <label for="password">Password:</label>
+      <input
+        type="password"
+        id="password"
+        name="password"
+        required
+      /><br /><br />
+
+      <button type="submit">Login</button>
+    </form>
+    <p><a href="/register">S'inscrire (enseignant uniquement)</a></p>
+  </body>
+</html>
