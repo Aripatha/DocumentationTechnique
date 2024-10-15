@@ -2,3 +2,4 @@ Flask
 Flask-SQLAlchemy
 Flask-WTF
 Werkzeug
+Flask-Login

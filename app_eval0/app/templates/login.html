@@ -4,17 +4,11 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Login</title>
-    <style>
-      body {
-        font-family: Arial, sans-serif;
-        max-width: 400px;
-        margin: auto;
-        padding: 20px;
-      }
-      .alert {
-        color: red;
-      }
-    </style>
+    <link
+      rel="stylesheet"
+      href="{{ url_for('static',filename='styles.css') }}"
+    />
+    <!-- Lien vers le fichier CSS -->
   </head>
   <body>
     <h2>Formulaire de Connexion</h2>
@@ -29,7 +23,7 @@
       <label for="statut">Statut:</label>
       <select id="statut" name="statut" required>
         <option value="">Choisir un statut</option>
-        <option value="etudiant">Étudiant</option>
+        <option value="étudiant">Étudiant</option>
         <option value="enseignant">Enseignant</option></select
       ><br /><br />
 
