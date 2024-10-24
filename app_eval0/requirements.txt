@@ -3,3 +3,4 @@ Flask-SQLAlchemy
 Flask-WTF
 Werkzeug
 Flask-Login
+Flask-Migrate
