@@ -1,0 +1,24 @@
+<!DOCTYPE html>
+<html lang="fr">
+  <head>
+    <meta charset="UTF-8" />
+    <title>Tableau de bord étudiant</title>
+  </head>
+  <body>
+    <h1>Examens disponibles</h1>
+    <ul>
+      {% for exam in exams %}
+      <li>
+        <strong>Examen ID: {{ exam.id }}</strong> - Disponible à partir de {{
+        exam.available_from }} pour une durée de {{ exam.duration }} minutes.
+        <br />
+        <a href="{{ url_for('main.start_exam', exam_id=exam.id) }}"
+          >Commencer l'examen</a
+        >
+      </li>
+      {% else %}
+      <p>Aucun examen disponible actuellement.</p>
+      {% endfor %}
+    </ul>
+  </body>
+</html>

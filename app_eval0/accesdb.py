@@ -1,6 +1,6 @@
 import sqlite3
 
-# Chemin vers votre fichier .db  a modifier  selon ou est stocker le projet dans votre ordinateur 
+# Chemin vers Le fichier .db  a modifier  selon ou est stocker le projet dans votre ordinateur 
 db_path = "C:/Users/USER/Documents/GitHub/DocumentationTechnique/app_eval0/instance/users.db"
 
 

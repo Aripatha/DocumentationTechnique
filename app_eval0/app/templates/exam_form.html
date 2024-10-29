@@ -1,0 +1,90 @@
+<!DOCTYPE html>
+<html lang="fr">
+  <head>
+    <meta charset="UTF-8" />
+    <link
+      rel="stylesheet"
+      href="{{ url_for('static',filename='styles.css') }}"
+    />
+    <script>
+      // Détection du redimensionnement de la fenêtre
+      window.addEventListener("resize", function () {
+        alert("Attention ! La taille de la fenêtre a été modifiée.");
+        sendAlertToServer("La taille de la fenêtre a été modifiée");
+      });
+
+      // Détection du rechargement de la page
+      window.addEventListener("beforeunload", function (event) {
+        event.preventDefault();
+        event.returnValue = "";
+        alert("Attention ! Vous avez essayé de recharger la page.");
+        sendAlertToServer("Tentative de rechargement de la page");
+      });
+
+      // Détection de la minimisation de la fenêtre
+      window.addEventListener("blur", function () {
+        alert("Attention ! La fenêtre est passée en arrière-plan.");
+        sendAlertToServer("La fenêtre est passée en arrière-plan");
+      });
+
+      // Détection du changement d'onglet
+      document.addEventListener("visibilitychange", function () {
+        if (document.hidden) {
+          alert("Attention ! Vous avez changé d'onglet.");
+          sendAlertToServer("Changement d'onglet détecté");
+        }
+      });
+
+      // Fonction pour envoyer les alertes au serveur
+      function sendAlertToServer(message) {
+        fetch("/report_event", {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({ alert: message }),
+        });
+      }
+    </script>
+    <title>Formulaire d'examen</title>
+  </head>
+  <body>
+    <h1>Examen</h1>
+    <form action="{{ url_for('main.submit_exam') }}" method="post">
+      <input type="hidden" name="exam_id" value="{{ exam.id }}" />
+
+      {% for question in questions %}
+      <div class="question">
+        <p>
+          <strong>Question {{ loop.index + 1 }}:</strong> {{
+          question['question'] }}
+        </p>
+
+        {% if question['type'] == 'qcm' %} {% for option in question['options']
+        %}
+        <div class="option">
+          <input
+            type="radio"
+            name="answers_{{ loop.index }}"
+            value="{{ option }}"
+            required
+          />
+          <label>{{ option }}</label>
+        </div>
+        {% endfor %} {% elif question['type'] == 'qro' %}
+        <textarea
+          name="answers_{{ loop.index }}"
+          rows="4"
+          cols="50"
+          placeholder="Entrez votre réponse ici..."
+          required
+        ></textarea>
+        {% endif %}
+      </div>
+      <br />
+      {% endfor %}
+
+      <button type="submit">Soumettre l'examen</button>
+    </form>
+  </body>
+</html>

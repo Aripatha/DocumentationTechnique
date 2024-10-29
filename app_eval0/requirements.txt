@@ -4,3 +4,10 @@ Flask-WTF
 Werkzeug
 Flask-Login
 Flask-Migrate
+Flask_mail
+openai
+PyPDF2
+python-docx
+python-dotenv
+openai
+Flask-SocketIO
