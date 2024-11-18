@@ -1,7 +1,9 @@
 import os
 import json
 import re
-from flask import request, flash, redirect, url_for, render_template, Blueprint, session, current_app,jsonify
+import sqlite3
+import pickle
+from flask import request, flash, redirect, url_for, render_template,Blueprint, session, current_app,jsonify
 from werkzeug.utils import secure_filename
 from werkzeug.security import generate_password_hash, check_password_hash
 from app.models import User, Exam, Result
@@ -19,6 +21,13 @@ main = Blueprint('main', __name__)
 openai.api_key = os.getenv('OPENAI_API_KEY')
 
 ALLOWED_EXTENSIONS = {'pdf', 'docx'}
+
+# Fonction pour se connecter à la base de données
+def get_db_connection():
+    db_path = "C:/Users/USER/Documents/GitHub/DocumentationTechnique/app_eval0/instance/users.db"
+    conn = sqlite3.connect(db_path)
+    conn.row_factory = sqlite3.Row
+    return conn
 
 def allowed_file(filename):
     return '.' in filename and filename.rsplit('.', 1)[1].lower() in ALLOWED_EXTENSIONS
@@ -122,44 +131,10 @@ def extract_text_pdf(file_path):
 
 
 
-# def generate_exam_questions(doc_text):
-#     prompt = (
-#         f"Génère des questions d'examen à partir du texte suivant :\n\n{doc_text}\n\n"
-#         "Fournis un format JSON strictement valide avec des questions, leurs options pour les QCM (si applicable), "
-#         "le type ('qcm' ou 'qro'), et la réponse correcte pour les QCM."
-#     )
-
-#     try:
-#         response = openai.ChatCompletion.create(
-#             model="gpt-3.5-turbo",
-#             messages=[{"role": "user", "content": prompt}]
-#         )
-#         generated_text = response.choices[0].message['content']
-#         print(f"Texte généré : {generated_text}")  # Debug
-
-#         # Nettoyage de texte JSON avec regex
-#         generated_text = re.sub(r",\s*}", "}", generated_text)  # Supprime les virgules avant les accolades fermantes
-#         generated_text = re.sub(r",\s*]", "]", generated_text)  # Supprime les virgules avant les crochets fermants
-
-#         # Suppression des doublons dans les options
-#         try:
-#             questions = json.loads(generated_text)
-#             for question in questions.get("questions", []):
-#                 if question.get("type") == "qcm":
-#                     question["options"] = list(set(question["options"]))  # Supprime les doublons dans les options
-#             return questions
-#         except json.JSONDecodeError as e:
-#             print(f"Erreur de décodage JSON : {e}")
-#             return []
-
-#     except Exception as e:
-#         print(f"Erreur lors de la génération des questions : {e}")
-#         return []
-
 def generate_exam_questions(doc_text):
     prompt = (
         f"Génère des questions d'examen à partir du texte suivant :\n\n{doc_text}\n\n"
-        "Fournis un format JSON avec des questions, leurs options pour les QCM (si applicable), "
+        "Fournis un format JSON strictement valide avec des questions, leurs options pour les QCM (si applicable), "
         "le type ('qcm' ou 'qro'), et la réponse correcte pour les QCM."
     )
 
@@ -171,16 +146,51 @@ def generate_exam_questions(doc_text):
         generated_text = response.choices[0].message['content']
         print(f"Texte généré : {generated_text}")  # Debug
 
-        # Vérifier si le texte généré est un JSON valide
+        # Nettoyage de texte JSON avec regex
+        generated_text = re.sub(r",\s*}", "}", generated_text)  # Supprime les virgules avant les accolades fermantes
+        generated_text = re.sub(r",\s*]", "]", generated_text)  # Supprime les virgules avant les crochets fermants
+
+        # Suppression des doublons dans les options
         try:
             questions = json.loads(generated_text)
+            for question in questions.get("questions", []):
+                if question.get("type") == "qcm":
+                    question["options"] = list(set(question["options"]))  # Supprime les doublons dans les options
             return questions
         except json.JSONDecodeError as e:
             print(f"Erreur de décodage JSON : {e}")
             return []
+
     except Exception as e:
         print(f"Erreur lors de la génération des questions : {e}")
         return []
+
+
+# def generate_exam_questions(doc_text):
+#     prompt = (
+#         f"Génère des questions d'examen à partir du texte suivant :\n\n{doc_text}\n\n"
+#         "Fournis un format JSON avec des questions, leurs options pour les QCM (si applicable), "
+#         "le type ('qcm' ou 'qro'), et la réponse correcte pour les QCM."
+#     )
+
+#     try:
+#         response = openai.ChatCompletion.create(
+#             model="gpt-3.5-turbo",
+#             messages=[{"role": "user", "content": prompt}]
+#         )
+#         generated_text = response.choices[0].message['content']
+#         print(f"Texte généré : {generated_text}")  # Debug
+
+#         # Vérifier si le texte généré est un JSON valide
+#         try:
+#             questions = json.loads(generated_text)
+#             return questions
+#         except json.JSONDecodeError as e:
+#             print(f"Erreur de décodage JSON : {e}")
+#             return []
+#     except Exception as e:
+#         print(f"Erreur lors de la génération des questions : {e}")
+#         return []
 
 
 
@@ -228,23 +238,176 @@ def student_dashboard():
 #     return render_template('exam_form.html', exam=exam, enumerate=enumerate)
 
 
-@main.route('/start_exam/<int:exam_id>', methods=['GET', 'POST'])
+
+#A effacer apres plusieurs tests 
+
+@main.route('/start_exam/<int:exam_id>', methods=['GET'])
 @login_required
 def start_exam(exam_id):
-    exam = Exam.query.get_or_404(exam_id)
-
-    current_time = datetime.now()
-    if current_time < exam.available_from:
-        flash("Cet examen n'est pas encore disponible.", 'warning')
+    conn = get_db_connection()
+    cursor = conn.cursor()
+    
+    cursor.execute("SELECT * FROM Exam WHERE id = ?", (exam_id,))
+    result = cursor.fetchone()
+    conn.close()
+    
+    if result:
+        try:
+            exam_data = {
+                'id': result['id'],
+                'available_from': result['available_from'],
+                'duration': result['duration'],
+                'created_by': result['created_by']
+            }
+            
+            # Désérialiser les questions
+            raw_questions = pickle.loads(result['questions'])
+            
+            # S'assurer que nous avons une liste de questions
+            if isinstance(raw_questions, dict) and 'questions' in raw_questions:
+                questions = raw_questions['questions']
+            else:
+                questions = raw_questions
+                
+            # Convertir en liste si ce n'est pas déjà le cas
+            if not isinstance(questions, list):
+                questions = [questions]
+            
+            # Nettoyer et valider chaque question
+            formatted_questions = []
+            for q in questions:
+                if isinstance(q, dict):
+                    formatted_question = {
+                        'question': q.get('question', ''),
+                        'type': q.get('type', 'qro'),
+                        'options': q.get('options', []),
+                        'reponse': q.get('reponse', '')
+                    }
+                    formatted_questions.append(formatted_question)
+            
+            print("Formatted Questions:", formatted_questions)  # Pour déboguer
+            
+            return render_template('exam_form.html', 
+                                exam=exam_data, 
+                                questions=formatted_questions)
+                                
+        except Exception as e:
+            print(f"Error processing exam data: {str(e)}")
+            flash("Erreur lors du chargement de l'examen.", 'error')
+            return redirect(url_for('main.student_dashboard'))
+    else:
+        flash("Examen introuvable.", 'warning')
         return redirect(url_for('main.student_dashboard'))
 
-    # Vérifiez si 'exam.questions' est déjà un dictionnaire
-    if isinstance(exam.questions, str):
-        questions = json.loads(exam.questions)
-    else:
-        questions = exam.questions
+# @main.route('/start_exam/<int:exam_id>', methods=['GET'])
+# @login_required
+# def start_exam(exam_id):
+#     conn = get_db_connection()
+#     cursor = conn.cursor()
 
-    return render_template('exam_form.html', exam=exam, questions=questions, enumerate=enumerate)
+#     # Retrieve the exam from the database by its ID
+#     cursor.execute("SELECT * FROM Exam WHERE id = ?", (exam_id,))
+#     result = cursor.fetchone()
+#     conn.close()
+
+#     if result:
+#         # Assuming that 'result' contains the exam data and 'questions' is pickled in it
+#         exam_data = {
+#             'id': result['id'],
+#             'available_from': result['available_from'],
+#             'duration': result['duration'],
+#             'created_by': result['created_by']
+#         }
+#         questions = pickle.loads(result['questions'])  # Deserialize the questions
+
+#         # Pass both 'exam' and 'questions' to the template
+#         return render_template('exam_form.html', exam=exam_data, questions=questions)
+#     else:
+#         flash("Examen introuvable.", 'warning')
+#         return redirect(url_for('main.student_dashboard'))
+
+
+
+
+
+
+
+
+
+# A effacer des que le code sera correcte 
+
+
+
+
+
+# @main.route('/start_exam/<int:exam_id>', methods=['GET', 'POST'])
+# @login_required
+# def start_exam(exam_id):
+#     conn = get_db_connection()
+#     cursor = conn.cursor()
+    
+#     # Récupère l'examen en fonction de son ID
+#     cursor.execute("SELECT questions FROM Exam WHERE id = ?", (exam_id,))
+#     result = cursor.fetchone()
+#     conn.close()
+
+#     if result:
+#         # Désérialise les questions
+#         questions = pickle.loads(result['questions'])
+#     else:
+#         questions = []
+
+#     return render_template('exam_form.html', questions=questions)
+#     # exam = Exam.query.get_or_404(exam_id)
+
+#     # # current_time = datetime.now()
+#     # # if current_time < exam.available_from:
+#     # #     flash("Cet examen n'est pas encore disponible.", 'warning')
+#     # #     return redirect(url_for('main.student_dashboard'))
+
+#     # # # Vérifiez si 'exam.questions' est déjà un dictionnaire
+#     # # if isinstance(exam.questions, str):
+#     # #     questions = json.loads(exam.questions)
+#     # # else:
+#     # #     questions = exam.questions
+
+#     # # return render_template('exam_form.html', exam=exam, questions=questions, enumerate=enumerate)
+#     # # Pas besoin de décodage JSON, accédez directement aux questions
+#     # questions = exam.questions  # Puisque 'questions' est déjà une liste de dictionnaires
+    
+#     # # Renvoyer les données à 'exam_form.html'
+#     # # return render_template('exam_form.html', exam=exam, questions=questions)
+#     # questions = exam.questions  # Puisque 'questions' est déjà une liste de dictionnaires
+#     # print(type(questions))
+#     # print(questions)  # Pour vérifier toutes les questions
+
+#     # # Vérification des données
+#     # if not isinstance(questions, list) or not questions:
+#     #     questions = [{"question": "Aucune question trouvée pour cet examen.", "type": "message"}]
+
+#     # return render_template('exam_form.html', exam=exam, questions=questions)
+    
+# @main.route('/start_exam/<int:exam_id>', methods=['GET'])
+# @login_required
+# def start_exam(exam_id):
+#     conn = get_db_connection()
+#     cursor = conn.cursor()
+    
+#     # Récupère l'examen en fonction de son ID
+#     cursor.execute("SELECT questions FROM Exam WHERE id = ?", (exam_id,))
+#     result = cursor.fetchone()
+#     conn.close()
+
+#     if result:
+#         # Désérialise les questions
+#         questions = pickle.loads(result['questions'])
+#         print("Questions désérialisées:", questions)  # Affiche les questions récupérées pour vérifier leur contenu
+#     else:
+#         questions = []
+
+#     return render_template('exam_form.html', questions=questions)
+
+#test debug code formulaire 
 
 
 # @main.route('/start_exam/<int:exam_id>', methods=['GET', 'POST'])
@@ -421,12 +584,24 @@ def save_result(username, score, exam_id):
     db.session.add(result)
     db.session.commit()
 
+import smtplib
 def send_result_to_professor(username, score, exam_id, professor_id):
     professor = User.query.get(professor_id)
     if professor:
-        msg = Message('Résultat d\'examen', recipients=[professor.email])
+        msg = Message(
+            'Résultat d\'examen',
+            sender='expediteur@exemple.com',  # Assurez-vous de remplacer par un expéditeur valide
+            recipients=[professor.email]
+        )
         msg.body = f"Étudiant: {username}, Score: {score}, Examen ID: {exam_id}"
-        mail.send(msg)
+        try:
+            mail.send(msg)
+            print("E-mail envoyé avec succès")
+        except smtplib.SMTPException as e:
+            print(f"Erreur lors de l'envoi de l'e-mail: {e}")
+        except Exception as e:
+            print(f"Une autre erreur est survenue: {e}")
+
 
 @main.route('/add_student', methods=['GET', 'POST'])
 @login_required
@@ -458,3 +633,14 @@ def report_event():
     # Log ou gestion de l'alerte ici
     print(f"Alerte de sécurité reçue: {alert_message}")
     return jsonify({"status": "success"}), 200
+
+def test_send_email():
+    msg = Message("Test Email", 
+                  sender=os.getenv('MAIL_DEFAULT_SENDER'),
+                  recipients=["bnjabnja04@gmail.com"])
+    msg.body = "Ceci est un email de test."
+    try:
+        mail.send(msg)
+        print("Email envoyé avec succès !")
+    except Exception as e:
+        print("Erreur lors de l'envoi de l'email:", e)

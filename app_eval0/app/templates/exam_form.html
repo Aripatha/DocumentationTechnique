@@ -1,10 +1,11 @@
-<!DOCTYPE html>
+<!-- <!DOCTYPE html>
 <html lang="fr">
   <head>
     <meta charset="UTF-8" />
+    <title>Examen</title>
     <link
       rel="stylesheet"
-      href="{{ url_for('static',filename='styles.css') }}"
+      href="{{ url_for('static', filename='styles.css') }}"
     />
     <script>
       // Détection du redimensionnement de la fenêtre
@@ -46,22 +47,23 @@
         });
       }
     </script>
-    <title>Formulaire d'examen</title>
   </head>
   <body>
     <h1>Examen</h1>
     <form action="{{ url_for('main.submit_exam') }}" method="post">
       <input type="hidden" name="exam_id" value="{{ exam.id }}" />
 
-      {% for question in questions %}
+      {% if questions %} {% for question in questions %}
+      <p>{{ questions }}</p>
+
       <div class="question">
         <p>
-          <strong>Question {{ loop.index + 1 }}:</strong> {{
-          question['question'] }}
+          <strong>Question {{ loop.index }}:</strong> {{ question['question'] }}
         </p>
 
         {% if question['type'] == 'qcm' %} {% for option in question['options']
         %}
+
         <div class="option">
           <input
             type="radio"
@@ -82,9 +84,105 @@
         {% endif %}
       </div>
       <br />
+      {% endfor %} {% else %}
+      <p>Aucune question trouvée pour cet examen.</p>
+      {% endif %}
+      <button type="submit">Soumettre l'examen</button>
+    </form>
+  </body>
+</html> -->
+
+<!DOCTYPE html>
+<html lang="fr">
+  <head>
+    <meta charset="UTF-8" />
+    <title>Examen</title>
+    <style>
+      body {
+        max-width: 800px;
+        margin: 0 auto;
+        padding: 20px;
+        font-family: Arial, sans-serif;
+      }
+
+      .question {
+        background-color: #f5f5f5;
+        margin: 20px 0;
+        padding: 20px;
+        border-radius: 8px;
+        box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+      }
+
+      .option {
+        margin: 10px 0;
+        padding: 5px;
+      }
+
+      textarea {
+        width: 100%;
+        padding: 10px;
+        border: 1px solid #ddd;
+        border-radius: 4px;
+        resize: vertical;
+      }
+
+      .submit-btn {
+        background-color: #007bff;
+        color: white;
+        padding: 10px 20px;
+        border: none;
+        border-radius: 4px;
+        cursor: pointer;
+        margin-top: 20px;
+      }
+
+      .submit-btn:hover {
+        background-color: #0056b3;
+      }
+    </style>
+  </head>
+  <body>
+    <h1>Examen</h1>
+
+    <form action="{{ url_for('main.submit_exam') }}" method="post">
+      <input type="hidden" name="exam_id" value="{{ exam.id }}" />
+
+      {% if questions and questions|length > 0 %} {% for q in questions %}
+      <div class="question">
+        <p>
+          <strong>Question {{ loop.index }}:</strong>
+          {{ q.question }}
+        </p>
+
+        {% if q.type == 'qcm' %} {% if q.options %} {% for option in q.options
+        %}
+        <div class="option">
+          <input
+            type="radio"
+            id="q{{ loop.index0 }}_opt{{ loop.index }}"
+            name="answer_{{ loop.index0 }}"
+            value="{{ option }}"
+            required
+          />
+          <label for="q{{ loop.index0 }}_opt{{ loop.index }}">
+            {{ option }}
+          </label>
+        </div>
+        {% endfor %} {% endif %} {% elif q.type == 'qro' %}
+        <textarea
+          name="answer_{{ loop.index0 }}"
+          rows="4"
+          placeholder="Entrez votre réponse ici..."
+          required
+        ></textarea>
+        {% endif %}
+      </div>
       {% endfor %}
 
-      <button type="submit">Soumettre l'examen</button>
+      <button type="submit" class="submit-btn">Soumettre l'examen</button>
+      {% else %}
+      <p>Aucune question n'a été trouvée pour cet examen.</p>
+      {% endif %}
     </form>
   </body>
 </html>
